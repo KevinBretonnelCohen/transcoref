@@ -1,0 +1,12 @@
+ID	string	sentenceID	semanticClass	wordOffset	comment
+0	P53	0	GENE	0	First word of first sentence
+1	P53	1	GENE	0	First word of second sentence
+2	p53	1	GENE	5	Non-first word of second sentence
+3	p53	2	PROTEIN	1	Non-first word of third sentence
+4	p53	2	GENE	1	Non-first word of third sentence
+5	HBOX-1	2	GENE	0	First word of third sentence
+6	HBOX1	2	GENE	5	Non-first word of third sentence
+7	HBOX2	3	GENE	0	First word of fourth sentence
+8	HBOX-2	3	PROTEIN	5	Non-first word of fourth sentence
+9	Mouse	4	SPECIES	0	First word of fifth sentence
+10	murine	5	SPECIES	5	Non-first word of sixth sentence
