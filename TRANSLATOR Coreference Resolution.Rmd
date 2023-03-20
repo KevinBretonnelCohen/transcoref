@@ -21,6 +21,8 @@ library(tidyverse)
 countOfBNGsWithSemanticClassLabel = 0
 countOfBNGsWithoutSemanticClassLabel = 0
 
+current.pair.id = 0 # an incrementable counter for IdentPairs. Can I increment this within a ctor?
+
 ```
 
 ## BioNLP-ST data: Representing in R
@@ -236,12 +238,19 @@ print("NO TESTS IMPLEMENTED FOR IdentPair class")
 ```{r}
 library(tidyverse)
 
-printIdentPair <- function(filename, pair.id, sieve, anaphor.id, antecedent.id) {
-  print(paste(pair.id, sieve, anaphor.id, antecedent.id))
-  print(paste())
+# OK, this makes no sense. You should be getting passed an IdentPair, not its details!!!
+# PICK UP FROM HERE
+#printIdentPair <- function(filename, pair.id, sieve, anaphor.id, antecedent.id) {
+#  print(paste(pair.id, sieve, anaphor.id, antecedent.id))
+#  print(paste())
+#} # close function definition printIdentPair()
+
+printIdentPair <- function(ident.pair) {
+  print("TRYING TO PRINT AN IDENT PAIR...")    
 } # close function definition printIdentPair()
 
 getPairID <- function(ident.pair) {
+  print("In function getPairID()")
   return(ident.pair@pair.id)
 }
 print("NO TESTS IMPLEMENTED FOR getPairID()")
@@ -890,7 +899,7 @@ library(tidyverse)
 #                          antecedent.ids = c(),
 #                          sieves = c()) # wait, no--fuck... my representation of IdentPairs is as a class!!! OK, let's rethink this...
 
-current.pair.id = 0 # an incrementable counter for IdentPairs. Can I increment this within a ctor?
+
 ident.pairs.in.list <- c()
 
 # At this point in the game, you have all of the annotations in the file (which contains one per line) stored in bngs.
@@ -948,7 +957,12 @@ for (i in 1:number.of.lines) {
   if (stringsMatchIfCaseToggled(anaphor = anaphor, candidate = candidate)) {
     #print(paste("Strings match if case-toggled:", bngs[[i]]@covered.text), bngs[[i-1]]@covered.text)
     print(paste("STRINGS MATCHED! (case-toggled)", getString(anaphor), getString(candidate)))
-    
+    current.pair.id <- current.pair.id + 1 # need to increment the numeric
+                                           # ID for pairs every time that you 
+                                           # match any sieve
+                                           # ...so I should have a function for
+                                           # adding new pairs to wherever it
+                                           # is that I'm storing them...
     current.pair <- new (Class = "IdentPair",
                          filename = filename,
                          pair.id = current.pair.id,
@@ -968,6 +982,7 @@ for (i in 1:number.of.lines) {
   # whoops, I meant to do string-matching! 
   
   print("FINISHED LOOPING THROUGH INPUT FILE.")
+  print(paste("Found", length(ident.pairs.in.list), "candidate pairs."))
 ```
 
 ### Try the semantic functions
@@ -982,9 +997,9 @@ with bioprint().
 
 TODO: When you find a match, store it away by the two annotation IDs.
 
-```{r try.semantic.functions}
+```{r try.semantic.functions, eval = FALSE}
 
-DEBUG = TRUE
+DEBUG.CHUNK = TRUE
 
 # TODO: convert from list to BioNLPST object
 # why am I doing this off of bngs, rather than passing in two objects? Oh, I guess I am passing in two objects--but, doing so via bngs only makes sense if I'm doing a whole file at a time. Actually, that sorta makes sense *if* I add to each individual annotation/object a list of the other objects that have a matched semantic class. Wouldn't it make more sense conceptually to do that via a discourse model, though?
@@ -993,42 +1008,49 @@ DEBUG = TRUE
 print("")
 print("RUNNING semanticClassesMatch() on entire file...")
 print("")
-
+print(paste("Current value of pair ID:", current.pair.id))
 # set to length(bngs) to process entire file,
 # or to smaller number for devtesting
 number.of.lines <- length(bngs)
 #number.of.lines <- 3
 
-if (DEBUG) {
+if (TRUE) {
   
   # start at 2 because you can't do this for the first one alone
   for (i in 2:number.of.lines) {
-    print(paste("Index to bngs:", i))
+    if (DEBUG) { print(paste("Index to bngs:", i)) }
     anaphor <- bngs[[i]]
     candidate <- bngs[[i-1]]
     
-    if (DEBUG) {
+    if (DEBUG.CHUNK) {
       print("Anaphor:")
       bioprint(anaphor)
       print("Candidate:")
       bioprint(candidate)
     }
     if (semanticClassesMatch(anaphor, candidate)) {
-      print(paste("Semantic match!", getSemanticClassLabel(anaphor), getSemanticClassLabel(candidate)))
-      if (TRUE) {
+      print(paste("<<<SEMANTIC MATCH!>>>", getSemanticClassLabel(anaphor), getSemanticClassLabel(candidate)))
+      if (DEBUG.CHUNK) {
         print("Anaphor:")
+        #print(anaphor)
         bioprint(anaphor)
         print("Candidate:")
+        #print(candidate)
         bioprint(candidate)
       }
+      if (DEBUG.CHUNK) { print(paste("CURRENT PAIR ID TO TROUBLESHOOT BUG:", current.pair.id)) } 
       current.pair <- new (Class = "IdentPair",
                       filename = filename,
                       pair.id = current.pair.id,
                       anaphor.id = getBioNlpStId(anaphor),
                       antecedent.id = getBioNlpStId(candidate),
                       sieve = "SEMANTIC.LEAF.NODE.MATCH")
+      if (TRUE) {
+        print("New IdentPair:")
+        printIdentPair(current.pair)
+      }
       ident.pairs.in.list <- c(ident.pairs.in.list, current.pair)
-    } 
+    } # CLOSE IF-SEMANTIC-CLASSES-MATCH 
   } # close for-loop through all annotations
   
   print("")
@@ -1037,6 +1059,26 @@ if (DEBUG) {
   # TODO: add a filter for noncontinuous annotations until such a time as I can handle them!
 } # close run across entire file
 ```
+
+\newpage
+
+## Produce output from the semantic rules
+
+```{r}
+print("IDENT PAIRS FROM ALL RULES:")
+
+# Just printing the list sucks--way too much empty space! Let's iterate over
+# the list and call the pretty-print function for each pair; if I don't have
+# one yet, let's write one.
+#print(ident.pairs.in.list)
+
+for (i in 1:length(ident.pairs.in.list)) {
+  identPrint(ident.pair = ident.pairs.in.list[[i]])  
+} # close for-loop through list of IdentPairs
+
+print(paste("Found", length(ident.pairs.in.list), "candidate pairs."))
+```
+
 
 ## Reproducibility/Repeatability
 
